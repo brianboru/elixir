@@ -17,6 +17,4 @@ defmodule MyList do
     defp find_min([], min), do: min
     defp find_min([head | rest], min) when head >= min, do: find_min(rest, min)
     defp find_min([head | rest], min) when head < min, do: find_min(rest, head)
-
-
 end
