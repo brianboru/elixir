@@ -1,0 +1,3 @@
+%{
+  "erl8583": {:git, "https://github.com/mgwidmann/erl8583.git", "104c69ede82ef05db2f0556b8cef15774a0aed05", []},
+}
