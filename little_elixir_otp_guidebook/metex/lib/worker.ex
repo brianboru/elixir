@@ -1,9 +1,19 @@
 defmodule Metex.Worker do
-  def temperature_of(location) do
+    def loop do
+        receive do
+            {sender_pid, location} ->
+                send(sender_pid, {:ok, temperature_of(location)})
+            _ ->
+                IO.puts "don't know how to process this messge"
+        end
+        loop()
+    end
+  
+  defp temperature_of(location) do
     result = url_for(location) |> HTTPoison.get |> parse_response
     case result do
       {:ok, temp} ->
-        "#{location}: #{temp}°C"
+        "#{location}: #{temp}"
       :error ->
         "#{location} not found"
     end
@@ -26,6 +36,17 @@ defmodule Metex.Worker do
     try do
       temp = (json["main"]["temp"] - 273.15) |> Float.round(1)
       {:ok, temp}
+    rescue
+      _ -> :error
+    end
+  end
+
+  defp compute_response(json) do
+    try do
+      temp = (json["main"]["temp"] - 273.15) |> Float.round(1)
+      dir = json["wind"]["deg"]
+      speed = (json["wind"]["speed"] * 2.237) |> Float.round(0)
+      {:ok, temp, "#{dir} @ #{speed}"}
     rescue
       _ -> :error
     end
