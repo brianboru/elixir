@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "iso8583_test"
+		},
+		{
+			"path": "erl_8583_new"
+		}
+	]
+}
