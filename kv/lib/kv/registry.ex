@@ -18,6 +18,7 @@ defmodule KV.Registry do
     GenServer.call(registry, {:lookup, name})
   end
 
+  @spec create(atom | pid | {atom, any} | {:via, atom, any}, any) :: :ok
   def create(registry, name) do
     GenServer.cast(registry, {:create, name})
   end
@@ -26,22 +27,53 @@ defmodule KV.Registry do
 
   @impl true
   def init(:ok) do
-    {:ok, %{}}
+    names = %{}
+    refs = %{}
+
+    {:ok, {names, refs}}
   end
 
   @impl true
-  def handle_call({:lookup, name}, _from, names) do
-    {:reply, Map.fetch(names, name), names}
+  def handle_call({:lookup, name}, _from, state) do
+    {names, _} = state
+    {:reply, Map.fetch(names, name), state}
   end
 
   @impl true
-  def handle_cast({:create, name}, names) do
+  def handle_cast({:create, name}, {names, refs}) do
     if Map.has_key?(names, name) do
-      {:noreply, names}
+      {:noreply, {names, refs}}
     else
       {:ok, bucket} = KV.Bucket.start_link([])
-      {:noreply, Map.put(names, name, bucket)}
+      ref = Process.monitor(bucket)
+      refs = Map.put(refs, ref, name)
+      names = Map.put(names, name, bucket)
+
+      {:noreply, {names, refs}}
     end
+  end
+
+  @doc """
+  Callback invoked when a monitored bucket crashes
+
+  Here we ensure that we move the mappings from both the
+  names and refs maps
+  """
+  @impl true
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, {names, refs}) do
+    # remove the ref->name mapping from the refs map
+    {name, refs} = Map.pop(refs, ref)
+
+    # remove the name->pid mapping from the names map
+    names = Map.delete(names, name)
+
+    # new state is the new names and new refs
+    {:noreply, {names, refs}}
+  end
+
+  @impl true
+  def handle_info(_msg, state) do
+    {:noreply, state}
   end
 
 end
