@@ -30,4 +30,14 @@ defmodule KV.Bucket do
     # be that returned by the function
     Agent.update(bucket, &Map.put(&1, key, value))
   end
+
+  @doc """
+  Deletes `key` from `bucket`
+
+  Returns the current value of `key` if `key` exists
+  """
+  @spec delete(atom | pid | {atom, any} | {:via, atom, any}, any) :: any
+  def delete(bucket, key) do
+    Agent.get_and_update(bucket, &Map.pop(&1, key))
+  end
 end
